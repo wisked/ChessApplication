@@ -1,0 +1,14 @@
+{% extends 'main.html' %}
+{% block index %}
+
+    <h2>Стол: {{ data.players_query.0.table_id }}</h2>
+    {% for player in data.players_query %}
+        <h3>Имя: {{ player.name }} Рейтинг: {{ player.ello_rate }}</h3>
+    {% endfor %}
+
+    <form action="{% url 'chess:pushResult' data.players_query.0.table_id %}" method="post">{% csrf_token %}
+        {{ form.as_ul }}
+        <input type="submit" value="PUSH">
+
+    </form>
+{% endblock %}

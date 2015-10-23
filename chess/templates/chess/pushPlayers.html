@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+{% block index %}
+
+    {% if register %}
+        <h1>Register Close!</h1>
+        <h2><a href="{% url 'chess:pushed' %}">Зарегистрированные игроки</a></h2>
+    {% else %}
+        {% if name %}
+            <h2>Игрок {{ name }} зарегистрирован.</h2>
+        {% endif %}
+
+        <h2><a href="{% url 'chess:pushed' %}">Завершить регистрацию</a></h2>
+
+        <form action="{% url 'chess:pushPlayers' %}" method="post">
+            {% csrf_token %}
+            {{ form.as_ul }}
+            <input type="submit" value="Push">
+        </form>
+    {% endif %}
+
+{% endblock %}

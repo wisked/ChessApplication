@@ -1,0 +1,10 @@
+{% extends 'main.html' %}
+{% block index %}
+
+    <h1>Зарегистрированные игроки</h1>
+    <h2><a href="{% url 'chess:startCompetition' %}">Начать соревнование</a> </h2>
+    {% for player in players %}
+        <p>{{ player.name }} {{ player.ello_rate }}</p>
+    {% endfor %}
+
+{% endblock %}

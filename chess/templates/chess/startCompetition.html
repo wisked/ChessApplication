@@ -1,0 +1,23 @@
+{% extends 'main.html' %}
+{% block index %}
+
+    <h1>Раунд: {{ round.1 }}</h1>
+    {% if result == None %}
+        <a href="#"><h2>Начать следующий раунд</h2></a>
+    {% endif %}
+    {% for table in tables %}
+        <a href="{% url 'chess:pushResult' table.id %}"><h2>Номер стола: {{ table.number_table }}</h2></a>
+        {% for d in data %}
+
+            {% if table.number_table == d.table_id %}
+                <h3>{{ d.name }} {{ d.ello_rate }}
+                    {% if d.result != Null %}
+                        {{ d.result }}
+                    {% endif %} </h3>
+            {% endif %}
+
+        {% endfor %}
+    {% endfor %}
+
+
+{% endblock %}
