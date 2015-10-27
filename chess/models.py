@@ -22,6 +22,7 @@ class Player(models.Model):
     table = models.ForeignKey(Table)
     name = models.CharField(max_length=50)
     ello_rate = models.FloatField(default=0)
+    result = models.FloatField(null=True)
 
     class Meta:
         db_table = 'players'

@@ -1,10 +1,28 @@
 {% extends 'main.html' %}
 {% block index %}
 
-    <h1>Зарегистрированные игроки</h1>
+    <h1>Зарегистрированные игроки {{ players_count }}</h1>
+    {% if tour %}
+        <h2>Необходимо количество туров {{ tour }}</h2>
+        {% else %}
+            <form action="{% url 'chess:pushed' %}" method="post">
+            {% csrf_token %}
+            <div class="fieldWrapped">
+                {{ form.input_places.error_messages }}
+                <label for="{{ form.input_places.id_for_input_places }}">Количество призовых мест</label>
+                {{ form.input_places }}
+            </div>
+
+            <input type="submit" value="Submit">
+    </form>
+    {% endif %}
+
+
     <h2><a href="{% url 'chess:startCompetition' %}">Начать соревнование</a> </h2>
     {% for player in players %}
         <p>{{ player.name }} {{ player.ello_rate }}</p>
     {% endfor %}
+
+
 
 {% endblock %}

@@ -20,6 +20,10 @@ class PushResults(forms.Form):
     second_result = forms.ChoiceField(choices=MATCH_RESULT)
 
 
+class AddPlaces(forms.Form):
+    input_places = forms.IntegerField(max_value=RegisterPlayer.objects.count())
+
+
 # class PushResults(ModelForm):
 #     class Meta:
 #         models = RegisterPlayer

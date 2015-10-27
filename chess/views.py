@@ -2,6 +2,7 @@ from django.shortcuts import render, HttpResponseRedirect
 from .forms import *
 # from mysql.connector import connection
 from django.db import connection
+import math
 # Create your views here.
 
 
@@ -17,18 +18,29 @@ def pushPlayers(request):
         form = PushPlayers()
         if request.method == 'POST':
             form = PushPlayers(request.POST)
-
+            name = None
             if form.is_valid():
                 name = form.cleaned_data['name']
                 form.save()
             else:
                 form = PushPlayers()
-        return render(request, 'chess/pushPlayers.html', {'form': form})
+        return render(request, 'chess/pushPlayers.html', {'form': form, 'name': name})
 
 
 def pushed(request):
     players = RegisterPlayer.objects.raw('SELECT * FROM register ORDER BY register.name')
-    return render(request, 'chess/pushed.html', {'players': players})
+    players_count = RegisterPlayer.objects.count()
+    count_tour = 0
+    if request.method == 'POST':
+        form = AddPlaces(request.POST)
+        if form.is_valid():
+            places = form.cleaned_data['input_places']
+            count_tour = round(math.log2(RegisterPlayer.objects.count())) + round(math.log2(places))
+    else:
+        form = AddPlaces()
+
+    return render(request, 'chess/pushed.html', {'players': players, 'tour': count_tour, 'form': form,
+                                                 'players_count': players_count})
 
 
 def startCompetition(request):
@@ -42,23 +54,30 @@ def startCompetition(request):
         if round_count == None:
             cursor.execute('INSERT INTO rounds VALUES (1,1)')
 
-        table_query = Table.objects.raw('SELECT * FROM tables')
+        table_query = Table.objects.raw('SELECT * FROM tables') #?
         table_count = int(round(reg_player/2))
 
         #Добавление столов
-        if table_query[0].id == None:
+        if Table.objects.count() == 0:
             for i in range(1, table_count+1):
                 cursor.execute('INSERT INTO tables VALUES (%s, %s, 1)', [i, i])
 
-        get_table_id = RegisterPlayer.objects.raw('SELECT * from register WHERE id = 1')
+        # get_table_id = RegisterPlayer.objects.raw('SELECT * from register WHERE result is NULL LIMIT 1')
+        first_part = RegisterPlayer.objects.raw('SELECT id, name, ello_rate FROM register ORDER BY ello_rate DESC '
+                                                'LIMIT %s', [table_count])
+        second_part = RegisterPlayer.objects.raw('SELECT id, name, ello_rate FROM register ORDER BY ello_rate DESC '
+                                                'LIMIT %s, %s', [table_count, reg_player])
 
         #Запись игроку номера стола
-        if get_table_id[0].table_id is 'NULL':
-            for i in range(1, table_count+1):
-                get_pair = RegisterPlayer.objects.raw('SELECT * FROM register WHERE table_id is NULL '
-                                                      'ORDER BY ello_rate DESC LIMIT 2')
-                for var in get_pair:
-                    cursor.execute('UPDATE register SET table_id=%s WHERE id=%s', [i, var.id])
+        if first_part[0].table_id is None:
+            for i in range(table_count):
+                first_player_id = first_part[i].id
+                second_player_id = second_part[i].id
+                # get_pair = RegisterPlayer.objects.raw('SELECT * FROM register WHERE table_id is NULL '
+                #                                       'ORDER BY ello_rate DESC LIMIT 2')
+                # for var in get_pair:
+                cursor.execute('UPDATE register SET table_id=%s WHERE id=%s', [i+1, first_player_id])
+                cursor.execute('UPDATE register SET table_id=%s WHERE id=%s', [i+1, second_player_id])
         cursor.execute('SELECT id, result FROM register WHERE result IS NULL')
         get_result = cursor.fetchone()
     finally:
@@ -107,3 +126,31 @@ def pushResult(request, pk):
         else:
             form = PushResults()
     return render(request, 'chess/pushResult.html', {'data': args, 'form': form})
+
+
+def addRound(request, pk):
+    print(pk)
+    new_key = int(pk + 1)
+    Round.objects.raw('INSERT INTO rounds VALUES (%s,%s)', [new_key, new_key])
+    reg_players = RegisterPlayer.objects.count()
+    table_count = int(round(reg_players/2))
+    cursor = connection.cursor()
+    try:
+        players = RegisterPlayer.objects.raw('SELECT * FROM register')
+        for i in players:
+            cursor.execute('INSERT INTO players VALUES (%s, %s, %s, %s, %s)', [i.id, i.name, i.ello_rate, i.table_id, i.result])
+
+        #Добавление столов
+        # if Table.objects.count() == 0:
+        #     for i in range(1, table_count+1):
+        #         cursor.execute('INSERT INTO tables VALUES (%s, %s, %s)', [i, i, pk])
+
+        # get_table_id = RegisterPlayer.objects.raw('SELECT * from register WHERE result is NULL LIMIT 1')
+        # first_part = RegisterPlayer.objects.raw('SELECT id, name, ello_rate FROM register ORDER BY ello_rate DESC '
+        #                                         'LIMIT %s', [table_count])
+        # second_part = RegisterPlayer.objects.raw('SELECT id, name, ello_rate FROM register ORDER BY ello_rate DESC '
+        #                                         'LIMIT %s, %s', [table_count, reg_players])
+    finally:
+        cursor.close()
+
+    return render(request, 'chess/addRound.html')

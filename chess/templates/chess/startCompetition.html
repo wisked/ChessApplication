@@ -3,16 +3,23 @@
 
     <h1>Раунд: {{ round.1 }}</h1>
     {% if result == None %}
-        <a href="#"><h2>Начать следующий раунд</h2></a>
+        <a href="{% url 'chess:addRound' round.1 %}"><h2>Начать следующий раунд</h2></a>
     {% endif %}
     {% for table in tables %}
         <a href="{% url 'chess:pushResult' table.id %}"><h2>Номер стола: {{ table.number_table }}</h2></a>
         {% for d in data %}
 
             {% if table.number_table == d.table_id %}
-                <h3>{{ d.name }} {{ d.ello_rate }}
+                <h3>Имя игрока: {{ d.name }} Текущий рейтинг: {{ d.ello_rate }}
                     {% if d.result != Null %}
-                        {{ d.result }}
+                        Результат партиии:
+                        {% if d.result == 1 %}
+                            <strong style="color: green">Победа</strong>
+                            {% elif d.result == 0.5 %}
+                            <strong style="color: yellow">Ничья</strong>
+                            {% elif d.result == 0 %}
+                            <strong style="color: darkred">Поражение</strong>
+                        {% endif %}
                     {% endif %} </h3>
             {% endif %}
 

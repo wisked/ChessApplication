@@ -13,7 +13,24 @@
 
         <form action="{% url 'chess:pushPlayers' %}" method="post">
             {% csrf_token %}
-            {{ form.as_ul }}
+
+                <div class="fieldWrapper">
+                    {{ form.name.errors }}
+{#                    <label for="{{ form.name.id_for_name }}">Name</label>#}
+                    {{ form.name.label_tag }}
+                    <input type="text" id="{{ form.name.id_for_name }}" name="name" required>
+                </div>
+            <div class="fieldWrapper">
+                 {{ form.ello_rate.errors }}
+{#                <label for="{{ form.name.id_for_ello_rate }}">Rating Ello</label>#}
+                {{ form.ello_rate.label_tag }}
+{#              {{ form.ello_rate }}#}
+                <input type="number" id="{{ form.ello_rate.id_for_ello_rate }}" name="ello_rate" required>
+            </div>
+
+
+
+{#            {{ form.as_ul }}#}
             <input type="submit" value="Push">
         </form>
     {% endif %}

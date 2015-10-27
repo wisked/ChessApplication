@@ -7,4 +7,6 @@ urlpatterns = [
     url(r'^pushed/$', views.pushed, name='pushed'),
     url(r'^start/$', views.startCompetition, name='startCompetition'),
     url(r'^competition/table/(?P<pk>[0-9]+)/$', views.pushResult, name='pushResult'),
+    url(r'^competition/round/(?P<pk>[0-9]+)/$', views.addRound, name='addRound'),
+
 ]
