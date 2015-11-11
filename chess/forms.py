@@ -21,7 +21,7 @@ class PushResults(forms.Form):
 
 
 class AddPlaces(forms.Form):
-    input_places = forms.IntegerField(max_value=RegisterPlayer.objects.count())
+    input_places = forms.IntegerField(max_value=RegisterPlayer.objects.count(), min_value=0)
 
 
 # class PushResults(ModelForm):

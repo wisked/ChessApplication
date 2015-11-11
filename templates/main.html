@@ -1,12 +1,19 @@
 <!DOCTYPE html>
+{% load staticfiles %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>Chess</title>
+    <link href="{% static 'css/bootstrap.css' %}" type="text/css" rel="stylesheet">
+    <script src="{% static 'js/bootstrap.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular.min.js"></script>
 </head>
 <body>
-    {% block index %}
+    <div class="col-lg-offset-1">
+        {% block index %}
 
-    {% endblock %}
+        {% endblock %}
+    </div>
+
 </body>
 </html>

@@ -19,7 +19,8 @@ class Table(models.Model):
 
 
 class Player(models.Model):
-    table = models.ForeignKey(Table)
+    table_id = models.IntegerField(null=True)
+    round_id = models.IntegerField(null=True)
     name = models.CharField(max_length=50)
     ello_rate = models.FloatField(default=0)
     result = models.FloatField(null=True)
@@ -40,6 +41,7 @@ class RegisterPlayer(models.Model):
     ello_rate = models.FloatField(default=0)
     result = models.FloatField(choices=MATCH_RESULT, null=True)
     table_id = models.IntegerField(blank=True, null=True)
+    round_id = models.IntegerField(blank=True, null=True)
 
     class Meta:
         db_table = 'register'

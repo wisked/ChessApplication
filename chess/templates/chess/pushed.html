@@ -1,27 +1,35 @@
 {% extends 'main.html' %}
 {% block index %}
 
-    <h1>Зарегистрированные игроки {{ players_count }}</h1>
     {% if tour %}
-        <h2>Необходимо количество туров {{ tour }}</h2>
+        <h2>Необходимое количество туров {{ tour }}</h2>
         {% else %}
             <form action="{% url 'chess:pushed' %}" method="post">
-            {% csrf_token %}
-            <div class="fieldWrapped">
-                {{ form.input_places.error_messages }}
-                <label for="{{ form.input_places.id_for_input_places }}">Количество призовых мест</label>
-                {{ form.input_places }}
-            </div>
+                {% csrf_token %}
 
-            <input type="submit" value="Submit">
-    </form>
+                <div class="fieldWrapped">
+                    {{ form.input_places.error_messages }}
+                    <label for="{{ form.input_places.id_for_input_places }}">Количество призовых мест</label>
+                    {{ form.input_places }}
+                </div>
+
+                <input type="submit" value="Submit">
+            </form>
     {% endif %}
 
+    {% if first_round.0.id %}
+{#        <h2><a href="{% url 'chess:startCompetition' %}">Начать соревнование</a> </h2>#}
+        <h2><a href="{% url 'chess:addRound' first_round.0.id %}">Начать {{ first_round.0.number }} раунд</a> </h2>
+    {% endif %}
 
-    <h2><a href="{% url 'chess:startCompetition' %}">Начать соревнование</a> </h2>
+    <div class="col-md-offset-1">
+    <h2>Зарегистрированные игроки {{ players_count }}</h2>
+        <div class="col-md-offset-1">
     {% for player in players %}
         <p>{{ player.name }} {{ player.ello_rate }}</p>
     {% endfor %}
+        </div>
+    </div>
 
 
 

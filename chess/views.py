@@ -3,6 +3,7 @@ from .forms import *
 # from mysql.connector import connection
 from django.db import connection
 import math
+from .data import *
 # Create your views here.
 
 
@@ -11,14 +12,14 @@ def index(request):
 
 
 def pushPlayers(request):
-    if Round.objects.count() > 0:
-        register = True
-        return render(request, 'chess/pushPlayers.html', {'register': register})
+    name = None
+    if Round.objects.count() > 1:
+        register_close = True
+        return render(request, 'chess/pushPlayers.html', {'register': register_close})
     else:
         form = PushPlayers()
         if request.method == 'POST':
             form = PushPlayers(request.POST)
-            name = None
             if form.is_valid():
                 name = form.cleaned_data['name']
                 form.save()
@@ -30,17 +31,27 @@ def pushPlayers(request):
 def pushed(request):
     players = RegisterPlayer.objects.raw('SELECT * FROM register ORDER BY register.name')
     players_count = RegisterPlayer.objects.count()
-    count_tour = 0
+
     if request.method == 'POST':
         form = AddPlaces(request.POST)
         if form.is_valid():
             places = form.cleaned_data['input_places']
             count_tour = round(math.log2(RegisterPlayer.objects.count())) + round(math.log2(places))
+
+            #Добавление туров
+            if Round.objects.count() == 0:
+                with connection.cursor() as c:
+                    for i in range(1, count_tour+1):
+                        c.execute('INSERT INTO rounds VALUES (%s, %s)', [i, i])
+                first_round = Round.objects.raw('SELECT * FROM rounds WHERE number=1')
+            else:
+                first_round = Round.objects.raw('SELECT * FROM rounds WHERE number=1')
     else:
         form = AddPlaces()
-
+        count_tour = Round.objects.count()
+        first_round = Round.objects.raw('SELECT * FROM rounds WHERE number=1')
     return render(request, 'chess/pushed.html', {'players': players, 'tour': count_tour, 'form': form,
-                                                 'players_count': players_count})
+                                                 'players_count': players_count, 'first_round': first_round})
 
 
 def startCompetition(request):
@@ -92,8 +103,10 @@ def startCompetition(request):
 
 def pushResult(request, pk):
     args = {}
-    args['players_query'] = RegisterPlayer.objects.raw('SELECT * FROM register WHERE table_id=%s ORDER BY ello_rate', [pk])
+    args['players_query'] = Player.objects.raw('SELECT * FROM players WHERE table_id=%s ORDER BY ello_rate DESC, '
+                                                       'players.name ASC', [pk])
     get_id = []
+
     #Получение id игроков
     for i in args['players_query']:
         get_id.append(i.id)
@@ -102,7 +115,7 @@ def pushResult(request, pk):
         result = 'Игроку добавлен 1 балл'
         cursor = connection.cursor()
         try:
-            cursor.execute('UPDATE register SET result=%s WHERE id=%s', [1, get_id[0]])
+            cursor.execute('UPDATE players SET result=%s WHERE id=%s', [1, get_id[0]])
         finally:
             cursor.close()
         return HttpResponseRedirect('/chess/start/')
@@ -119,38 +132,101 @@ def pushResult(request, pk):
             cursor = connection.cursor()
             try:
                 for i in range(len(get_id)):
-                    cursor.execute('UPDATE register SET result=%s WHERE id=%s', [result[i], get_id[i]])
+                    cursor.execute('UPDATE players SET result=%s WHERE id=%s', [result[i], get_id[i]])
             finally:
                 cursor.close()
-            return HttpResponseRedirect('/chess/start')
+            return HttpResponseRedirect('/chess/competition/round/{0}'.format(args['players_query'][0].round_id))
         else:
             form = PushResults()
     return render(request, 'chess/pushResult.html', {'data': args, 'form': form})
 
 
 def addRound(request, pk):
-    print(pk)
-    new_key = int(pk + 1)
-    Round.objects.raw('INSERT INTO rounds VALUES (%s,%s)', [new_key, new_key])
-    reg_players = RegisterPlayer.objects.count()
-    table_count = int(round(reg_players/2))
+    reg_player = RegisterPlayer.objects.count()
+    get_players_pk = Player.objects.filter(round_id=int(pk)).count()
+
+    if get_players_pk == 0:
+        copy_players = RegisterPlayer.objects.raw('SELECT * FROM register')
+
+        for i in copy_players:
+            with connection.cursor() as c:
+                c.execute('INSERT INTO players (id, name, ello_rate, result, round_id, table_id ) '
+                          'VALUES (NULL, %s, %s, NULL, %s, NULL)', [i.name, i.ello_rate, int(pk)])
+
     cursor = connection.cursor()
+
     try:
-        players = RegisterPlayer.objects.raw('SELECT * FROM register')
-        for i in players:
-            cursor.execute('INSERT INTO players VALUES (%s, %s, %s, %s, %s)', [i.id, i.name, i.ello_rate, i.table_id, i.result])
 
-        #Добавление столов
-        # if Table.objects.count() == 0:
-        #     for i in range(1, table_count+1):
-        #         cursor.execute('INSERT INTO tables VALUES (%s, %s, %s)', [i, i, pk])
+        table_query = Table.objects.filter(round_id=pk).count()
+        table_count = int(round(reg_player/2))
 
-        # get_table_id = RegisterPlayer.objects.raw('SELECT * from register WHERE result is NULL LIMIT 1')
-        # first_part = RegisterPlayer.objects.raw('SELECT id, name, ello_rate FROM register ORDER BY ello_rate DESC '
-        #                                         'LIMIT %s', [table_count])
-        # second_part = RegisterPlayer.objects.raw('SELECT id, name, ello_rate FROM register ORDER BY ello_rate DESC '
-        #                                         'LIMIT %s, %s', [table_count, reg_players])
+        table = Table.objects.raw('SELECT * FROM tables WHERE round_id_id=%s', [pk])
+
+        if table_query == 0:
+            for i in range(1, table_count + 1):
+                cursor.execute('INSERT INTO tables VALUES (NULL , %s, %s)', [i, int(pk)])
+
+        #Для 1го раунда
+        if int(pk) == 1:
+            first_part = Player.objects.raw('SELECT id, name, ello_rate FROM players ORDER BY ello_rate DESC '
+                                                    'LIMIT %s', [table_count])
+            second_part = Player.objects.raw('SELECT id, name, ello_rate FROM players ORDER BY ello_rate DESC '
+                                                     'LIMIT %s, %s', [table_count, reg_player])
+
+            #Запись игроку номера стола
+            if first_part[0].table_id is None:
+                for i in range(table_count):
+                    first_player_id = first_part[i].id
+                    second_player_id = second_part[i].id
+                    cursor.execute('UPDATE players SET table_id=%s, round_id=%s WHERE id=%s', [i+1, int(pk), first_player_id])
+                    cursor.execute('UPDATE players SET table_id=%s, round_id=%s WHERE id=%s', [i+1, int(pk), second_player_id])
+
+        else:
+            lose = Calculation(int(pk))
+
+            lose.nextRound()
+
     finally:
         cursor.close()
+    players = Player.objects.raw('SELECT * FROM players WHERE round_id=%s', [int(pk)])
+    results = Player.objects.filter(result=None).count()
 
-    return render(request, 'chess/addRound.html')
+    d = makeQuery(2)
+    print(d)
+    if results == 0:
+        next_round = int(pk) + 1
+
+    else:
+        next_round = 0
+    return render(request, 'chess/addRound.html', {'players': players, 'tables': table, 'results': results, 'next_round':next_round})
+
+
+def nextRound(limit, result):
+    if limit % 2 != 0:
+        print(result)
+        player = RegisterPlayer.objects.raw('SELECT * FROM register WHERE result=%s '
+                                            'ORDER BY ello_rate DESC, name ASC', [result])[0]
+        print(player.id)
+        with connection.cursor() as c:
+            c.execute('UPDATE register SET result=%s WHERE id=%s', [result + 0.5, player.id])
+
+
+def pushTable(limit, pk):
+    cursor = connection.cursor()
+    print(limit)
+    try:
+        first_part = RegisterPlayer.objects.raw('SELECT * FROM register '
+                                                    'WHERE result=1 ORDER BY ello_rate DESC LIMIT %s',
+                                                    [int(limit/2)])
+        second_part = RegisterPlayer.objects.raw('SELECT * FROM register '
+                                         'WHERE result=1 ORDER BY ello_rate DESC LIMIT %s, %s',
+                                                      [int(limit/2), limit])
+        for i in range(int(limit/2)):
+            print(i)
+            first_player_id = first_part[i].id
+            second_player_id = second_part[i].id
+            print(first_player_id)
+            cursor.execute('UPDATE register SET table_id=%s, round_id=%s WHERE id=%s', [i+1, int(pk), first_player_id])
+            cursor.execute('UPDATE register SET table_id=%s, round_id=%s WHERE id=%s', [i+1, int(pk), second_player_id])
+    finally:
+        cursor.close()

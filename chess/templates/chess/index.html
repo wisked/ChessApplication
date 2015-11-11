@@ -1,7 +1,10 @@
 {% extends 'main.html' %}
 {% block index %}
 
-    <a href="{% url 'chess:pushPlayers' %}">Начать соревнование</a>
-
+    <h2><a href="{% url 'chess:pushPlayers' %}">Начать соревнование</a></h2>
+    <div ng-app>
+    <input type="checkbox" ng-model="Control">
+    <div ng-show="Control">yeee</div>
+    </div>
 
 {% endblock %}
